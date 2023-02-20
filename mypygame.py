@@ -31,6 +31,16 @@ def collisions(player, obstacles):
                 return False
     return True
 
+def player_animation():
+    global player_surface, player_index
+
+    if player_rect.bottom < 390:
+        player_surface = player_jump
+    else:
+        player_index += 0.1
+        if player_index >= len(player_walk): player_index = 0
+        player_surface = player_walk[int(player_index)]
+
 # Starts all the important aspects of pygame
 pygame.init()
 
@@ -55,8 +65,13 @@ soldier_surface = pygame.transform.rotozoom(soldier_surface, 0, 0.54) # resize i
 
 obstacle_rect_list = []
 
-player_surface = pygame.image.load('Graphics/Krillin.png').convert_alpha()
-player_rect = player_surface.get_rect(midbottom = (80, 390))
+player_walk_1 = pygame.image.load('Graphics/Krillin-remade.png').convert_alpha()
+player_walk_2 = pygame.image.load('Graphics/Krillin-run.png').convert_alpha()
+player_walk = [player_walk_1, player_walk_2]
+player_index = 0
+player_jump = pygame.image.load('Graphics/Krillin-jump.png').convert_alpha()
+player_surface = player_walk[player_index]
+player_rect = player_walk_1.get_rect(midbottom = (80, 390))
 player_gravity = 0
 
 # Intro screen
@@ -105,21 +120,14 @@ while True:
         # screen block image transfer aka one surface on another surface & positioning
         screen.blit(sky_surface,(-300,0)) 
         screen.blit(ground_surface,(0,360))
-        # pygame.draw.rect(screen, '#caf8fc', score_rect)
-        # pygame.draw.rect(screen,'#caf8fc', score_rect, 10)
-        # screen.blit(score_surface, score_rect)
         score = display_score()
-        # snail_rect.x -=5
-        # if snail_rect.x < -50:
-        #     snail_rect.x = 800
-        # screen.blit(snail_surface, snail_rect)
-        # player_rect.left += 1
 
         # Player
         player_gravity +=1
         player_rect.y += player_gravity
         if player_rect.bottom >= 390:
             player_rect.bottom = 390
+        player_animation()
         screen.blit(player_surface, player_rect)
 
         # Obstacle movement 
@@ -132,6 +140,8 @@ while True:
         screen.fill('black')
         screen.blit(player_alt, player_alt_rect)
         obstacle_rect_list.clear()
+        player_rect.midbottom = (80, 390)
+        player_gravity = 0
 
         score_message = test_font.render(f'Your score: {score}', False, 'white')
         score_message_rect = score_message.get_rect(center = (400, 350))
