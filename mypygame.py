@@ -14,10 +14,8 @@ def obstacle_movement(obstacle_list):
         for obstacle_rect in obstacle_list:
             obstacle_rect.x -= randint(5, 9)
 
-            if obstacle_rect.bottom == 390:
-                screen.blit(snail_surface, obstacle_rect)
-            else:
-                screen.blit(soldier_surface, obstacle_rect)
+            if obstacle_rect.bottom == 385: screen.blit(snail_surface, obstacle_rect)
+            else: screen.blit(soldier_surface, obstacle_rect)
 
         obstacle_list = [obstacle for obstacle in obstacle_list if obstacle.x > -50]
 
@@ -58,10 +56,23 @@ ground_surface = pygame.image.load('Images/ground-dark.png').convert_alpha()
 score_surface = test_font.render('My Game', False, (10, 10, 10))
 score_rect = score_surface.get_rect(center = (400, 50))
 
-# Obstacles
-snail_surface = pygame.image.load('Graphics/snail.png').convert_alpha()
-soldier_surface = pygame.image.load('Graphics/soldier.png').convert_alpha()
-soldier_surface = pygame.transform.rotozoom(soldier_surface, 0, 0.54) # resize image
+# Snail
+snail_frame1 = pygame.image.load('Graphics/saibaman1.png').convert_alpha()
+snail_frame1 = pygame.transform.rotozoom(snail_frame1, 0, 0.22)
+snail_frame2 = pygame.image.load('Graphics/saibaman2.png').convert_alpha()
+snail_frame2 = pygame.transform.rotozoom(snail_frame2, 0, 0.28)
+snail_frames = [snail_frame1, snail_frame2]
+snail_frame_index = 0
+snail_surface = snail_frames[snail_frame_index]
+
+# Soldier
+soldier_frame1 = pygame.image.load('Graphics/soldier.png').convert_alpha()
+soldier_frame1 = pygame.transform.rotozoom(soldier_frame1, 0, 0.54) # resize image
+soldier_frame2 = pygame.image.load('Graphics/soldier2.png').convert_alpha()
+soldier_frame2 = pygame.transform.rotozoom(soldier_frame2, 0, 0.54)
+soldier_frames = [soldier_frame1, soldier_frame2]
+soldier_frame_index = 0
+soldier_surface = soldier_frames[soldier_frame_index]
 
 obstacle_rect_list = []
 
@@ -87,7 +98,14 @@ game_message_rect = game_message.get_rect(center = (400, 350))
 
 # Timer
 obstacle_timer = pygame.USEREVENT + 1
-pygame.time.set_timer(obstacle_timer, 1500)
+pygame.time.set_timer(obstacle_timer, 1400) # Frequency of enemies/obstacles
+
+snail_animation_timer = pygame.USEREVENT + 2
+pygame.time.set_timer(snail_animation_timer, 300)
+
+soldier_animation_timer = pygame.USEREVENT + 3
+pygame.time.set_timer(soldier_animation_timer, 1150)
+
 
 while True:
     for event in pygame.event.get():
@@ -109,12 +127,22 @@ while True:
                 game_active = True
                 start_time = int(pygame.time.get_ticks() / 1000)
 
-        if event.type == obstacle_timer and game_active:
-            if randint(0, 2): # 0 = true, 1 = false
-                obstacle_rect_list.append(snail_surface.get_rect(midbottom = (randint(900, 1100), 390)))
-            else:
-                obstacle_rect_list.append(soldier_surface.get_rect(midbottom = (randint(900, 1100), 250)))
+        if game_active:
+            if event.type == obstacle_timer:
+                if randint(0, 2): # 0 = true, 1 = false
+                    obstacle_rect_list.append(snail_surface.get_rect(midbottom = (randint(900, 1100), 385)))
+                else:
+                    obstacle_rect_list.append(soldier_surface.get_rect(midbottom = (randint(900, 1100), 280)))
+                
+            if event.type == snail_animation_timer:
+                if snail_frame_index == 0: snail_frame_index = 1
+                else: snail_frame_index = 0
+                snail_surface = snail_frames[snail_frame_index]
 
+            if event.type == soldier_animation_timer:
+                if soldier_frame_index == 0: soldier_frame_index = 1
+                else: soldier_frame_index = 0
+                soldier_surface = soldier_frames[soldier_frame_index]
        
     if game_active:
         # screen block image transfer aka one surface on another surface & positioning
@@ -147,10 +175,8 @@ while True:
         score_message_rect = score_message.get_rect(center = (400, 350))
         screen.blit(game_name, game_name_rect)
         
-        if score == 0:
-            screen.blit(game_message, game_message_rect)
-        else:
-            screen.blit(score_message, score_message_rect)
+        if score == 0: screen.blit(game_message, game_message_rect)
+        else: screen.blit(score_message, score_message_rect)
 
     mouse_pos = pygame.mouse.get_pos()
     # if player_rect.collidepoint((mouse_pos)):
