@@ -9,7 +9,9 @@ class Player(pygame.sprite.Sprite):
         super().__init__()
         player_walk_1 = pygame.image.load('Graphics/Krillin-remade.png').convert_alpha()
         player_walk_2 = pygame.image.load('Graphics/Krillin-run.png').convert_alpha()
+        player_walk_3 = pygame.image.load('Graphics/Krillin-backstep.png').convert_alpha()
         self.player_walk = [player_walk_1, player_walk_2]
+        self.player_walk_bs = [player_walk_1, player_walk_3]
         self.player_index = 0
         self.player_jump = pygame.image.load('Graphics/Krillin-jump.png').convert_alpha()
 
@@ -31,19 +33,49 @@ class Player(pygame.sprite.Sprite):
         self.rect.y += self.gravity
         if self.rect.bottom >= 390:
             self.rect.bottom = 390
+        # Make sure the player does not move off the screen horizontally
+        if self.rect.left < 0:
+            self.rect.left = 0
+        elif self.rect.right > 800:
+            self.rect.right = 800
+
+    # For back and forth movement
+    def player_input(self): 
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_SPACE] and self.rect.bottom >= 390:
+            self.gravity = -20
+            self.jump_sound.play()
+        if keys[pygame.K_LEFT]:
+            self.rect.x -= 4
+        if keys[pygame.K_RIGHT]:
+            self.rect.x += 4
+
 
     def animation_state(self):
+        self.prev_x = 0
         if self.rect.bottom < 390:
             self.image = self.player_jump
-        else:
+        elif self.rect.x < self.prev_x:  # Moving left
+            self.player_index += 0.2
+            if self.player_index >= len(self.player_walk_bs): 
+                self.player_index = 0
+                # self.player_index = len(self.player_walk_bs) - 1
+            self.image = self.player_walk_bs[int(self.player_index)]
+        elif self.rect.x > self.prev_x:  # Moving right
             self.player_index += 0.1
-            if self.player_index >= len(self.player_walk): self.player_index = 0
+            if self.player_index >= len(self.player_walk):
+                self.player_index = 0
             self.image = self.player_walk[int(self.player_index)]
+        else:
+            self.image = self.player_walk[0]
+            self.image = self.player_walk_bs[0]
+        self.prev_x = self.rect.x
                 
 
     def update(self):
         self.player_input()
         self.apply_gravity()
+        self.player_input()
         self.animation_state()
 
 class Obstacle(pygame.sprite.Sprite):
@@ -83,7 +115,7 @@ class Obstacle(pygame.sprite.Sprite):
 
     def update(self):
         self.animation_state()
-        self.rect.x -= randint(9, 10) # Speed of objects/enemies
+        self.rect.x -= randint(9, 11) # Speed of objects/enemies
         self.destroy()
 
     def destroy(self):
@@ -91,37 +123,20 @@ class Obstacle(pygame.sprite.Sprite):
             self.kill()
 
 
-
 def display_score():
     current_time = int((pygame.time.get_ticks() / 1000)) - start_time
-    score_surf = test_font.render(f'Score: {current_time}', False, (10, 10, 10))
+    score_surf = pixel_font.render(f'Score: {current_time}', False, (10, 10, 10))
     score_rect = score_surf.get_rect(center = (400, 50))
     screen.blit(score_surf, score_rect)
     return current_time
 
-def collisions(player, obstacles):
-    if obstacles:
-        for obstacle_rect in obstacles:
-            if player.colliderect(obstacle_rect):
-                return False
-    return True
-
-def collison_sprites():
+def collision_sprites():
     if pygame.sprite.spritecollide(player.sprite, obstacle_group, False):
         obstacle_group.empty()
         return False
     else:
         return True
 
-def player_animation():
-    global player_surface, player_index
-
-    if player_rect.bottom < 390:
-        player_surface = player_jump
-    else:
-        player_index += 0.1
-        if player_index >= len(player_walk): player_index = 0
-        player_surface = player_walk[int(player_index)]
 
 # Starts all the important aspects of pygame
 pygame.init()
@@ -129,13 +144,12 @@ pygame.init()
 screen = pygame.display.set_mode((800, 400))
 pygame.display.set_caption('DBZ Runner')
 clock = pygame.time.Clock()
-test_font = pygame.font.Font('Fonts/Pixeltype.ttf', 20)
+pixel_font = pygame.font.Font('Fonts/Pixeltype.ttf', 20)
 game_active = False
 start_time = 0
 score = 0
-bg_music = pygame.mixer.Sound('Sound/Dragón Ball Z Chala Head Chala Instrumental (128 kbps).mp3')
-# pygame.mixer.Sound('Sound/We were angels(Angeles Fuimos)-Instrumental (128 kbps).mp3')
-bg_music.set_volume(0.1)
+bg_music = pygame.mixer.Sound('Sound/DBZ - We were angels2.wav')
+bg_music.set_volume(0.05)
 
 player = pygame.sprite.GroupSingle()
 player.add(Player())
@@ -145,7 +159,7 @@ obstacle_group = pygame.sprite.Group()
 sky_surface = pygame.image.load('Images/bg.jpeg').convert()
 ground_surface = pygame.image.load('Images/ground-dark.png').convert_alpha()
 
-score_surface = test_font.render('My Game', False, (10, 10, 10))
+score_surface = pixel_font.render('My Game', False, (10, 10, 10))
 score_rect = score_surface.get_rect(center = (400, 50))
 
 obstacle_rect_list = []
@@ -164,21 +178,21 @@ player_alt = pygame.image.load('Graphics/dbz-krillin.png').convert_alpha()
 player_alt = pygame.transform.rotozoom(player_alt, 0, 0.5)
 player_alt_rect = player_alt.get_rect(center = (400, 200))
 
-game_name = test_font.render('DBZ runner', False, 'white')
+game_name = pixel_font.render('DBZ runner', False, 'white')
 game_name_rect = game_name.get_rect(center = (400, 50))
 
-game_message = test_font.render('Press space to run', False, 'white')
+game_message = pixel_font.render('Press space to run', False, 'white')
 game_message_rect = game_message.get_rect(center = (400, 350))
 
 # Timer
 obstacle_timer = pygame.USEREVENT + 1
 pygame.time.set_timer(obstacle_timer, randint(640, 1200)) # Frequency of enemies/obstacles
 
-snail_animation_timer = pygame.USEREVENT + 2
-pygame.time.set_timer(snail_animation_timer, 300)
+saibaman_animation_timer = pygame.USEREVENT + 2
+pygame.time.set_timer(saibaman_animation_timer, 300)
 
 soldier_animation_timer = pygame.USEREVENT + 3
-pygame.time.set_timer(soldier_animation_timer, 1150)
+pygame.time.set_timer(soldier_animation_timer, randint(1000, 1200))
 
 
 while True:
@@ -197,7 +211,7 @@ while True:
                 if event.key == pygame.K_SPACE and player_rect.bottom >= 390:  
                     player_gravity = -20
 
-        elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:  
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:  
                 game_active = True
                 start_time = int(pygame.time.get_ticks() / 1000)
 
@@ -208,7 +222,7 @@ while True:
             
        
     if game_active:
-        bg_music.play(loops = -1)
+        bg_music.play(loops = -1) # -1 means infinite loop
         # screen block image transfer aka one surface on another surface & positioning
         screen.blit(sky_surface,(-300,0)) 
         screen.blit(ground_surface,(0,360))
@@ -223,17 +237,17 @@ while True:
         obstacle_group.update()
 
         #collisions
-        game_active = collison_sprites()
+        game_active = collision_sprites()
 
     else:
         bg_music.stop( )
         screen.fill('black')
         screen.blit(player_alt, player_alt_rect)
         obstacle_rect_list.clear()
-        player_rect.midbottom = (80, 390)
+        player.sprite.rect.midbottom = (80, 390)
         player_gravity = 0
 
-        score_message = test_font.render(f'Your score: {score}', False, 'white')
+        score_message = pixel_font.render(f'Your score: {score}', False, 'white')
         score_message_rect = score_message.get_rect(center = (400, 350))
         screen.blit(game_name, game_name_rect)
         
@@ -241,7 +255,6 @@ while True:
         else: screen.blit(score_message, score_message_rect)
 
     mouse_pos = pygame.mouse.get_pos()
-    # if player_rect.collidepoint((mouse_pos)):
-    #     print(pygame.mouse.get_pressed())
+
     pygame.display.update()
     clock.tick(60) # Frame rate
